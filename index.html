@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html>
+<!-- Michael Tseng -->
+<head>
+<title>0xF00D</title>
+<link rel="icon" 
+      type="image/png" 
+      href="icon.png">
+<style>
+table, th, td {
+	border-radius: 25px;
+    border: 1px solid white;
+    padding: 10px;
+	font-size: 110%;
+	font-weight: bold;
+}
+table {
+    border-spacing: 15px;
+}
+img {
+	width: 200px;
+	height: 75px;
+}
+body {
+	background-color: black;
+}
+div.absolute {
+	border-radius: 25px;
+	background:#98bf21;
+	height:100px;
+	width:100px;
+	position:absolute;
+	top:100px;
+	display:none;
+}
+div.pop {
+	border-radius: 25px;
+	height: 400px;
+	width: 700px;
+	padding-top: 50px;
+	padding-left: 20px;
+}
+p.cost {
+	padding-right: 50px;
+	position: relative;
+	float: right;
+}
+div.rs{
+	background-color: white;
+	height:700px;
+	width:900px;
+	position: relative;
+	float: right;
+	padding-top: 30px;
+	background-image: url('food3.jpg');
+	background-size: cover;
+	z-index: -1;
+}
+div.info{
+	border-radius: 25px;
+	background-color: #ffccff;
+	width: 600px;
+	height: 220px;
+	right: 20px;
+	top: 80px;
+	position: fixed;
+}
+.button {
+	border-radius: 25px;
+    background-color: #9999ff; 
+    border: none;
+    color: black;
+    padding: 12px 29px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+}
+.help {
+	border-radius: 25px;
+    background-color: #ff6666; 
+    border: none;
+    color: black;
+    padding: 12px 29px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 16px;
+	position: fixed;
+	float: right;
+	right: 20px;
+	top: 20px;
+	z-index: 0;
+}
+.api{
+	background-color: white;
+	right: 20px;
+	bottom: 10px;
+	width: 100px;
+	height: 50px;
+	background-image: url('locu.png');
+	background-size: contain;
+	position: absolute;
+}
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+<script>
+$(document).ready(function(){
+    $("#helpbtn").click(function(){
+        $("#helpdiv").fadeToggle("slow");
+    });
+});
+</script>
+<script>
+function Search(name, place, price, descript, snum){
+	$(document).ready(function(){
+		var data = new Object();
+		var i = 0;
+			if(snum <= 0){
+		snum = 1;
+		}
+		data.menu = true;
+		data.contact = false;
+		data.location = false;
+		if(snum === 2){
+			data.api = '{"api_key" : "Insert Here", "fields" : [ "name", "menus" ], "venue_queries" : [{"location" : {"locality":' + '"' + place + '"' + "}," + '"' + "menus" + '"' + ": {" + '"$present"' + ": true}," + '"' + "name" + '"' + ":" + '"' + name + '"' + "}]}";
+		}
+		else if(snum === 1){
+			data.api = '{"api_key" : "Insert Here", "fields" : ["name", "menus", "contact"], "venue_queries" : [{"name" : ' + '"' + name + '"' + "}]}";
+		}
+		
+		data.somebool = true;
+		data.array = new Array(data.api, data.menu, data.contact, data.location);
+		var dataString = JSON.stringify(data);
+		$.post('phpfile.php', {data: dataString}, function(res){
+		var obj = $.parseJSON(res);
+		if(obj.success !== 200){
+			alert("Something went wrong. Please try again.");
+		}
+		if(obj.somebool === true){
+			processResults(obj.stuff, price, descript);
+		}
+		});
+	});
+}
+
+function findContact(name, box){
+	$(document).ready(function(){
+		var data = new Object();
+		data.menu = false;
+		data.contact = true;
+		data.location = false;
+		data.api = '{"api_key" : "Insert Here", "fields" : ["name", "menus", "contact"], "venue_queries" : [{"name" : ' + '"' + name + '"' + "}]}";
+
+		data.somebool = true;
+		data.array = new Array(data.api, data.menu, data.contact, data.location);
+		var dataString = JSON.stringify(data);
+		$.post('phpfile.php', {data: dataString}, function(res){
+		var obj = $.parseJSON(res);
+		if(obj.success !== 200){
+			alert("Something went wrong. Please try again.");
+		}
+		if(obj.somebool === true){
+			processContact(obj.stuff, box);
+		}
+		});
+	});
+}
+
+function findRest(location){
+	$(document).ready(function(){
+		var data = new Object();
+		data.menu = false;
+		data.contact = false;
+		data.location = true;
+		data.api = '{"api_key" : "Insert Here","fields" : [ "name" ],"venue_queries" : [{"location" : {"locality": ' + '"' + location + '"' + "}}]}";
+
+		data.somebool = true;
+		data.array = new Array(data.api, data.menu, data.contact, data.location);
+		var dataString = JSON.stringify(data);
+		$.post('phpfile.php', {data: dataString}, function(res){
+		var obj = $.parseJSON(res);
+		if(obj.success !== 200){
+			alert("Something went wrong. Please try again.");
+		}
+		if(obj.somebool === true){
+			processRest(obj.stuff);
+		}
+		});
+	});
+}
+</script>
+</head>
+<body>
+
+
+<button type="button" id="helpbtn" class = "help">Help</button>
+<div id="helpdiv" style="display:none;" class="info">
+<p> The search parameters are: name, place, price, and contact number.</p>
+<p>A minimum of one input (name) is required when the 'find restaurants' is not checked</p>
+<p> Example Queries: wendy's, wendy's;irvine, boston beer garden;boston;11;contact </p>
+<p> The parameter description is accessed by checking the 'show description' box</p>
+<p> When 'find restaurants' is checked, the user may put in a city name to find five resturants</p>
+</div>
+<div class="api"></div>
+
+<img src="logo.png" id ="logo" alt="logo">
+<br></br>
+
+<div id="sresult" class="rs">
+<table style="width:100%" id="tresults">
+  <tr>
+    <td></td>
+    <td></td>		
+    <td></td>
+	<td></td>
+	<td></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>		
+    <td></td>
+	<td></td>
+	<td></td>
+  </tr>
+  <tr id = "food3">
+    <td></td>
+    <td></td>		
+    <td></td>
+	<td></td>
+	<td></td>
+  </tr>
+  <tr id = "food4">
+    <td></td>
+    <td></td>		
+    <td></td>
+	<td></td>
+	<td></td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>		
+    <td></td>
+	<td></td>
+	<td></td>
+  </tr>
+</table>
+</div>
+
+<form method="post" id="selection">
+		<input name="funcID" type="hidden" value="1">
+		<font color="white">Select Number of Days:</font>
+		<select id="days">
+			<option disabled select>Select an Option</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+			<option value="5">5</option>
+			<option value="6">6</option>
+			<option value="7">7</option>
+		</select>
+		
+		<font color="white">Budget</font>
+		<input type="text" id="budget" size="5">
+		<br></br>
+		
+	</form>
+
+<button onclick="newCal()" class="button" id="createbtn">Create</button>
+
+<div id="green" class="absolute"></div>
+
+<script>       
+
+function newCal(){
+	var num_days = document.getElementById("days").value;
+	var budget = document.getElementById("budget").value;
+	var i = 0;
+	var table = null;
+	
+	for(i=0;i<num_days;i++){
+		table = document.createElement("TABLE");
+		table.setAttribute("id", i);
+		document.body.appendChild(table);
+		table.style.display = "inline-block";
+		table.style.top = "500px";
+		createDay(i, table);
+		createPop(i, budget, num_days);
+	}
+	document.getElementById("createbtn").style.display = "none";
+	document.getElementById("selection").style.display = "none";
+}
+
+function createPop(id, budget, num_days){
+	var div = document.createElement("DIV");
+    var t = document.createTextNode("Meal Name: ");
+    div.setAttribute("style", "background-color: lightgreen;");
+	div.setAttribute("id", "div" + id);
+	div.className = "pop";
+    div.appendChild(t);
+	div.style.display = "none";
+	var mtitle = document.createElement("INPUT");
+	mtitle.setAttribute("type", "text");
+	div.appendChild(mtitle);
+	MaxCost(budget/(2*num_days), div);
+	createOptions(div, id);
+	createTArea(div, id);
+	createSearch(div, id);
+    document.body.appendChild(div);
+	
+	/****************************/
+	var div1 = document.createElement("DIV");
+    var t1 = document.createTextNode("Meal Name: ");
+    div1.setAttribute("style", "background-color: lightblue;");
+	div1.className = "pop";
+	div1.setAttribute("id", "div" + id + id);
+    div1.appendChild(t1);
+	div1.style.display = "none";
+	var mtitle1 = document.createElement("INPUT");
+	mtitle1.setAttribute("type", "text");
+	div1.appendChild(mtitle1);
+	MaxCost(budget/(2*num_days), div1);
+	createOptions(div1, "" + id + id);
+	createTArea(div1, "" + id + id);
+	createSearch(div1, "" + id + id);
+    document.body.appendChild(div1);
+	/****************************/
+}
+
+function hidePop(id){
+	var thing = document.getElementById(id);
+	
+	if(thing.style.display != "none"){
+		thing.style.display = "none";
+	}
+	else{
+		thing.style.display = "";
+	}
+}
+
+function MaxCost(cost, box){
+	var p = document.createElement("p");
+	var t = document.createTextNode("Max Cost: " + cost);
+	p.style.border = "thick solid #0000FF";
+	p.appendChild(t);
+	p.style.textAlign = "right";
+	p.className = "cost";
+	box.appendChild(p);
+}
+
+
+
+function createOptions(box, id){
+	var div = document.createElement("DIV");
+	var chome = document.createElement("INPUT");
+	var t = document.createTextNode("Home-Cooking: ");
+	chome.setAttribute("type", "checkbox");
+	div.appendChild(t);
+	div.appendChild(chome);
+	box.appendChild(div);
+	div.style.paddingTop = "30px";
+	chome.addEventListener("click", function(){hidePop("tbox" + id);});
+	
+	
+	var div1 = document.createElement("DIV");
+	var cout = document.createElement("INPUT");
+	var t1 = document.createTextNode("Take-Out: ");
+	cout.setAttribute("type", "checkbox");
+	div1.appendChild(t1);
+	div1.appendChild(cout);
+	box.appendChild(div1);
+	cout.addEventListener("click", function(){hidePop("sbox" + id)});
+}
+
+function createTArea(box, id){
+	var div = document.createElement("DIV");
+	var ta = document.createElement("TEXTAREA");
+	ta.setAttribute("rows", "10");
+	ta.setAttribute("cols", "50");
+	div.appendChild(ta);
+	div.style.paddingTop = "40px";
+	div.setAttribute("id", "tbox" + id);
+	div.style.display = "none";
+	box.appendChild(div);
+}
+
+function createSearch(box, id){
+	var div = document.createElement("DIV");
+	var input = document.createElement("INPUT");
+    input.setAttribute("type", "text");
+	input.setAttribute("id", "tbox" + id);
+    div.appendChild(input);
+	div.style.paddingTop = "40px";
+	div.setAttribute("id", "sbox" + id);
+	div.style.display = "none";
+	createSearchBtn(div, id);
+	createParameter(div, id)
+	box.appendChild(div);
+}
+
+function createSearchBtn(box, id){
+	var btn = document.createElement("BUTTON");
+    var t = document.createTextNode("Search");
+    btn.appendChild(t);
+	btn.addEventListener("click", function(){clear(); find(id, box);});
+    box.appendChild(btn);
+}
+
+function createParameter(box, id){
+	var div = document.createElement("DIV");
+	var descript = document.createElement("INPUT");
+	var t = document.createTextNode("Show Description: ");
+	descript.setAttribute("type", "checkbox");
+	descript.setAttribute("id", "de" + id);
+	div.appendChild(t);
+	div.appendChild(descript);
+	box.appendChild(div);
+	div.style.paddingTop = "30px";
+	div.setAttribute("id", "d" + id);
+	
+	
+	var div1 = document.createElement("DIV");
+	var rest = document.createElement("INPUT");
+	var t1 = document.createTextNode("Find Resturants: ");
+	rest.setAttribute("type", "checkbox");
+	rest.setAttribute("id", "re" + id);
+	div1.appendChild(t1);
+	div1.appendChild(rest);
+	box.appendChild(div1);
+	div1.setAttribute("id", "r" + id);
+}
+
+function find(id, box){
+	var div = document.getElementById("sbox" + id);
+	var input = div.children[0].value;
+	var predicate = input.split(";");
+	if(predicate[3] !== undefined && predicate[3].localeCompare("contact") === 0){
+		findContact(predicate[0], box);
+	}
+	
+	var quest = div.children[3].children[0].checked;
+	var predicate3 = div.children[2].children[0].checked;
+	if(quest){
+		findRest(predicate[0]);
+	}
+	else{
+		if(predicate.length === 1 || predicate.length === 2){
+			Search(predicate[0], predicate[1], predicate[2], predicate3, predicate.length);
+		}
+		if(predicate.length === 3){
+			Search(predicate[0], predicate[1], predicate[2], predicate3, predicate.length-1);
+		}
+		if(predicate.length == 4){
+			Search(predicate[0], predicate[1], predicate[2], predicate3, predicate.length-2);
+		}
+	}
+}
+
+function processResults(results, price, descript){
+	var rs = results.split(":");
+	var i = 0;
+	var j = 0;
+	var data = null;
+	var div = document.getElementById("sresult");
+	var table = div.children[0];
+	var v3 = null;
+	
+	for(i=0; i<5;i++){
+		data = rs[i].split("#");
+		v3 = table.rows[i].cells;
+		for(j=0;j<data.length;j++){
+			if(data[j] === "ITEM"){
+				continue;
+			}
+			if(!isNaN(parseFloat(data[j])) && parseFloat(data[j]) > parseFloat(price)){
+				break;
+			}
+			if(data[j].length >= 50 && !descript){
+				continue;
+			}
+			v3[j].innerHTML = data[j];
+		}
+	}
+}
+
+function processRest(results){
+	var rs = results.split(":");
+	var i = 0;
+	var data = null;
+	var div = document.getElementById("sresult");
+	var table = div.children[0];
+	for(i=0;i<5;i++){
+		data = rs[i];
+		v3 = table.rows[i].cells[0];
+		v3.innerHTML = data;
+	}
+}
+
+function processContact(contact, box){
+	var div = document.createElement("DIV");
+	div.style.paddingTop = "30px";
+	var t = document.createTextNode("Phone: " + contact);
+	div.appendChild(t);
+	box.appendChild(div);
+}
+
+function clear(){
+	var i = 0;
+	var j = 0;
+	var div = document.getElementById("sresult");
+	var table = div.children[0];
+	var v3 = null;
+	
+	for(i=0; i<5;i++){
+		v3 = table.rows[i].cells;
+		for(j=0;j<5;j++){
+			v3[j].innerHTML = "";
+		}
+	}
+}
+
+function createDay(id, table) {
+	var tr_id = null;
+	var row = null;
+	var data = null;
+	var btn0 = null;
+	var mealbtn = null;
+	var tr_id2 = null;
+	var row1 = null;
+	var data1 = null;
+	var btn1 = null;
+	var mealbtn1 = null;
+	var div1 = null;
+	var btn0_id = null;
+	var btn1_id = null;
+	
+	tr_id = "myTr" + id;
+    row = document.createElement("TR");
+    row.setAttribute("id", tr_id);
+    table.appendChild(row);
+
+    data = document.createElement("TD");
+	btn0 = document.createElement("BUTTON");        // Create a <button> element
+	btn0.className = "button";
+	mealbtn = document.createTextNode("Meal 1");       // Create a text node
+	btn0.appendChild(mealbtn);                                // Append the text to <button> 
+	btn0_id = "btn" + id;
+	btn0.setAttribute("id", btn0_id);
+    data.appendChild(btn0);
+    document.getElementById(tr_id).appendChild(data);
+	btn0.addEventListener("click", function(){hidePop("div" + id)});
+	
+	/***********/
+	tr_id2 = "myTr" + id + id;
+	row1 = document.createElement("TR");
+	row1.setAttribute("id", tr_id2);
+	table.appendChild(row1);
+	
+	data1 = document.createElement("TD");
+	btn1 = document.createElement("BUTTON");     
+	btn1.className = "button";
+	mealbtn1 = document.createTextNode("Meal 2");       
+	btn1.appendChild(mealbtn1);
+	btn1_id = "btn" + id + id;
+	btn1.setAttribute("id", btn1_id);
+    data1.appendChild(btn1);
+    row1.appendChild(data1);
+	btn1.addEventListener("click", function(){hidePop("div" + id + id)});
+	/******************/
+	
+	div1 = document.createElement("DIV");
+    div1.appendChild(table);
+    document.body.appendChild(div1);
+	div1.style.display = "inline-block";
+	div1.style.paddingTop = "50px";
+}
+</script>
+
+</body>
+</html>
